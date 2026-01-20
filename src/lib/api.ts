@@ -2,6 +2,9 @@ declare const browser: any;
 
 export const DEFAULT_API_URL = "";
 const STORAGE_KEY = "flomox_api_url";
+const THEME_STORAGE_KEY = "flomox_theme";
+
+export type Theme = "light" | "dark" | "system";
 
 export interface FlomoResponse {
   code: number;
@@ -36,6 +39,31 @@ export async function setApiUrl(url: string): Promise<void> {
     }
   } catch (error) {
     console.error("Error setting API URL:", error);
+  }
+}
+
+export async function getTheme(): Promise<Theme> {
+  try {
+    if (typeof browser !== "undefined" && browser.storage) {
+      const result = await browser.storage.local.get(THEME_STORAGE_KEY);
+      return (result[THEME_STORAGE_KEY] as Theme) || "system";
+    }
+    return (localStorage.getItem(THEME_STORAGE_KEY) as Theme) || "system";
+  } catch (error) {
+    console.error("Error getting theme:", error);
+    return "system";
+  }
+}
+
+export async function setTheme(theme: Theme): Promise<void> {
+  try {
+    if (typeof browser !== "undefined" && browser.storage) {
+      await browser.storage.local.set({ [THEME_STORAGE_KEY]: theme });
+    } else {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    }
+  } catch (error) {
+    console.error("Error setting theme:", error);
   }
 }
 

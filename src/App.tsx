@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { sendToFlomo, getApiUrl, setApiUrl, DEFAULT_API_URL, getCommands, updateCommandShortcut, type Command } from "@/lib/api";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { sendToFlomo, getApiUrl, setApiUrl, DEFAULT_API_URL, getCommands, updateCommandShortcut, type Command, getTheme, setTheme, type Theme } from "@/lib/api";
 import {
   Loader2,
   CheckCircle2,
@@ -25,10 +26,14 @@ function App() {
   const [isApiLoading, setIsApiLoading] = useState(true);
   const [command, setCommand] = useState<Command | null>(null);
   const [shortcutInput, setShortcutInput] = useState("");
+  const [theme, setThemeState] = useState<Theme>("system");
 
   const loadApiUrl = async () => {
     setIsApiLoading(true);
     const url = await getApiUrl();
+    const storedTheme = await getTheme();
+    setThemeState(storedTheme);
+
     if (url) {
       setApiUrlState(url);
       setShowSettings(false);
@@ -37,7 +42,7 @@ function App() {
       setShowSettings(true);
     }
     const cmds = await getCommands();
-    const sidebarCmd = cmds.find(c => c.name === "_execute_sidebar_action");
+    const sidebarCmd = cmds.find((c) => c.name === "_execute_sidebar_action");
     if (sidebarCmd) {
       setCommand(sidebarCmd);
       setShortcutInput(sidebarCmd.shortcut || "");
@@ -45,13 +50,47 @@ function App() {
     setIsApiLoading(false);
   };
 
+  const handleThemeChange = async (newTheme: Theme) => {
+    setThemeState(newTheme);
+    await setTheme(newTheme);
+  };
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+
+    if (theme === "system") {
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+        .matches
+        ? "dark"
+        : "light";
+      root.classList.add(systemTheme);
+    } else {
+      root.classList.add(theme);
+    }
+  }, [theme]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = () => {
+      if (theme === "system") {
+        const root = window.document.documentElement;
+        root.classList.remove("light", "dark");
+        root.classList.add(mediaQuery.matches ? "dark" : "light");
+      }
+    };
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, [theme]);
+
   const handleSaveSettings = async () => {
     if (!apiUrl.trim()) {
       showNotification("Configuration Error", "API URL cannot be empty");
       return;
     }
 
-    const apiRegex = /^https:\/\/flomoapp\.com\/iwh\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+\/?$/;
+    const apiRegex =
+      /^https:\/\/flomoapp\.com\/iwh\/[a-zA-Z0-9]+\/[a-zA-Z0-9]+\/?$/;
     if (!apiRegex.test(apiUrl.trim())) {
       showNotification("Configuration Error", "Invalid API URL format");
       return;
@@ -63,7 +102,9 @@ function App() {
         await updateCommandShortcut(command.name, shortcutInput);
         // Refresh command info
         const cmds = await getCommands();
-        const sidebarCmd = cmds.find(c => c.name === "_execute_sidebar_action");
+        const sidebarCmd = cmds.find(
+          (c) => c.name === "_execute_sidebar_action",
+        );
         if (sidebarCmd) {
           setCommand(sidebarCmd);
         }
@@ -81,23 +122,23 @@ function App() {
     e.stopPropagation();
 
     // Ignore modifier keys alone
-    if (['Control', 'Shift', 'Alt', 'Meta', 'Command'].includes(e.key)) {
+    if (["Control", "Shift", "Alt", "Meta", "Command"].includes(e.key)) {
       return;
     }
 
     const keys = [];
-    if (e.ctrlKey) keys.push('Ctrl');
-    if (e.metaKey) keys.push('Command');
-    if (e.altKey) keys.push('Alt');
-    if (e.shiftKey) keys.push('Shift');
-    
+    if (e.ctrlKey) keys.push("Ctrl");
+    if (e.metaKey) keys.push("Command");
+    if (e.altKey) keys.push("Alt");
+    if (e.shiftKey) keys.push("Shift");
+
     // Convert key to uppercase
     let key = e.key.toUpperCase();
-    if (key === ' ') key = 'Space';
-    
+    if (key === " ") key = "Space";
+
     keys.push(key);
-    
-    setShortcutInput(keys.join('+'));
+
+    setShortcutInput(keys.join("+"));
   };
 
   const showNotification = (title: string, message: string) => {
@@ -193,7 +234,10 @@ function App() {
             className="text-xs"
           />
           <div className="pt-2 border-t">
-            <Label htmlFor="shortcut" className="text-xs font-semibold flex items-center gap-2 mb-2">
+            <Label
+              htmlFor="shortcut"
+              className="text-xs font-semibold flex items-center gap-2 mb-2"
+            >
               <Keyboard className="h-3 w-3" />
               Toggle Sidebar Shortcut
             </Label>
@@ -205,8 +249,21 @@ function App() {
               className="text-xs font-mono"
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              Example: {navigator.platform.includes("Mac") ? "Command+Shift+Y" : "Ctrl+Shift+Y"}
+              Example:{" "}
+              {navigator.platform.includes("Mac")
+                ? "Command+Shift+Y"
+                : "Ctrl+Shift+Y"}
             </p>
+          </div>
+          <div className="pt-2 border-t">
+            <Label className="text-xs font-semibold mb-2 block">Theme</Label>
+            <Tabs value={theme} onValueChange={(v) => handleThemeChange(v as Theme)} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="light">Light</TabsTrigger>
+                <TabsTrigger value="dark">Dark</TabsTrigger>
+                <TabsTrigger value="system">System</TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
           <Button size="sm" onClick={handleSaveSettings} className="w-full">
             Save Configuration
