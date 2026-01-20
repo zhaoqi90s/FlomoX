@@ -55,7 +55,7 @@ FlomoX 是一个专为 Firefox 浏览器打造的浮墨笔记（Flomo）非官�
 - **React 18**：构建用户界面。
 - **TypeScript**：提供类型安全。
 - **Vite**：极速的开发和构建工具。
-- **shadcn/ui**：精美、可定制的 UI 组件库。
+- **Radix/ui**：精美、可定制的 UI 组件库。
 - **Tailwind CSS**：原子化 CSS 样式。
 - **Firefox WebExtensions API**：Manifest V3 标准。
 
